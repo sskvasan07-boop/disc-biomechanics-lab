@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { RotateCcw, Activity, Gauge, TrendingUp, AlertTriangle, FileDown } from "lucide-react";
 import StressStrainChart from "./StressStrainChart";
+import HerniationGauge from "./HerniationGauge";
 import { useRef, useState } from "react";
 import { exportSimulationPdf } from "@/lib/exportPdf";
 
@@ -206,6 +207,17 @@ export default function ControlPanel({
             icon={AlertTriangle}
             variant={riskVariant}
           />
+        </div>
+      </div>
+
+      {/* Gauge */}
+      <div>
+        <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-mono mb-3 flex items-center gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-primary" />
+          Herniation Risk
+        </h3>
+        <div className="rounded-lg border border-glow bg-card p-3">
+          <HerniationGauge risk={herniationRisk} />
         </div>
       </div>
 

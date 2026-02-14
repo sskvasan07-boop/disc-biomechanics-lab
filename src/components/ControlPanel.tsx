@@ -7,8 +7,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Activity, Gauge, TrendingUp, AlertTriangle } from "lucide-react";
+import { RotateCcw, Activity, Gauge, TrendingUp, AlertTriangle, FileDown } from "lucide-react";
 import StressStrainChart from "./StressStrainChart";
+import { useRef, useState } from "react";
+import { exportSimulationPdf } from "@/lib/exportPdf";
 
 interface ControlPanelProps {
   axialLoad: number;
@@ -72,6 +74,21 @@ export default function ControlPanel({
   setDiscHealth,
   onReset,
 }: ControlPanelProps) {
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportSimulationPdf(
+        { axialLoad, flexionAngle, discHealth },
+        chartRef.current
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // Calculate metrics
   const crossSectionalArea = 1500; // mm²
   const stress = axialLoad / crossSectionalArea; // MPa
@@ -198,20 +215,31 @@ export default function ControlPanel({
           <TrendingUp className="h-3.5 w-3.5 text-primary" />
           Stress vs Strain
         </h3>
-        <div className="rounded-lg border border-glow bg-card p-2">
+        <div ref={chartRef} className="rounded-lg border border-glow bg-card p-2">
           <StressStrainChart axialLoad={axialLoad} discHealth={discHealth} />
         </div>
       </div>
 
-      {/* Reset */}
-      <Button
-        onClick={onReset}
-        variant="outline"
-        className="w-full border-primary/30 text-primary hover:bg-primary/10 font-mono"
-      >
-        <RotateCcw className="h-4 w-4 mr-2" />
-        Reset Simulation
-      </Button>
+      {/* Actions */}
+      <div className="flex gap-2">
+        <Button
+          onClick={onReset}
+          variant="outline"
+          className="flex-1 border-primary/30 text-primary hover:bg-primary/10 font-mono"
+        >
+          <RotateCcw className="h-4 w-4 mr-2" />
+          Reset
+        </Button>
+        <Button
+          onClick={handleExport}
+          disabled={exporting}
+          variant="outline"
+          className="flex-1 border-primary/30 text-primary hover:bg-primary/10 font-mono"
+        >
+          <FileDown className="h-4 w-4 mr-2" />
+          {exporting ? "Exporting…" : "Export PDF"}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -7,9 +7,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Activity, Gauge, TrendingUp, AlertTriangle, FileDown } from "lucide-react";
+import { RotateCcw, Activity, Gauge, TrendingUp, AlertTriangle, FileDown, Zap } from "lucide-react";
 import StressStrainChart from "./StressStrainChart";
 import HerniationGauge from "./HerniationGauge";
+import AnimationPresets from "./AnimationPresets";
 import { useRef, useState } from "react";
 import { exportSimulationPdf } from "@/lib/exportPdf";
 
@@ -186,7 +187,16 @@ export default function ControlPanel({
                 </SelectItem>
               </SelectContent>
             </Select>
+        </div>
+
+        {/* Animation Presets */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Zap className="h-3.5 w-3.5 text-primary" />
+            <label className="text-sm text-foreground font-medium">Presets</label>
           </div>
+          <AnimationPresets setAxialLoad={setAxialLoad} setFlexionAngle={setFlexionAngle} />
+        </div>
         </div>
       </div>
 

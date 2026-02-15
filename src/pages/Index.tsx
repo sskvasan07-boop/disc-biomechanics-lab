@@ -1,19 +1,46 @@
-import { useState } from "react";
-import { Bone, Menu } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Bone, Menu, User } from "lucide-react";
 import SpineScene from "@/components/SpineScene";
+import HumanoidScene from "@/components/HumanoidScene";
 import ControlPanel from "@/components/ControlPanel";
+
+export type ActivityMode = "standing" | "walking" | "weightlifting";
 
 const Index = () => {
   const [axialLoad, setAxialLoad] = useState(500);
   const [flexionAngle, setFlexionAngle] = useState(0);
   const [discHealth, setDiscHealth] = useState<"healthy" | "mild" | "severe">("healthy");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activity, setActivity] = useState<ActivityMode>("standing");
+
+  // Sync: when activity changes to weightlifting, spike load
+  const handleActivityChange = (newActivity: ActivityMode) => {
+    setActivity(newActivity);
+    if (newActivity === "weightlifting") {
+      setAxialLoad((prev) => Math.max(prev, 1500));
+      setFlexionAngle(8);
+    } else if (newActivity === "standing") {
+      setFlexionAngle(0);
+    }
+  };
 
   const handleReset = () => {
     setAxialLoad(500);
     setFlexionAngle(0);
     setDiscHealth("healthy");
+    setActivity("standing");
   };
+
+  // Compute herniation risk (same formula as ControlPanel)
+  const herniationRisk = useMemo(() => {
+    const loadFactor = axialLoad / 2000;
+    const angleFactor = Math.abs(flexionAngle) / 15;
+    const healthMultiplier = discHealth === "healthy" ? 0.5 : discHealth === "mild" ? 1 : 1.8;
+    return Math.min(
+      100,
+      Math.round((loadFactor * 0.5 + angleFactor * 0.3 + loadFactor * angleFactor * 0.2) * healthMultiplier * 100)
+    );
+  }, [axialLoad, flexionAngle, discHealth]);
 
   return (
     <div className="flex flex-col h-screen bg-background bg-grid">
@@ -63,6 +90,8 @@ const Index = () => {
             setFlexionAngle={setFlexionAngle}
             discHealth={discHealth}
             setDiscHealth={setDiscHealth}
+            activity={activity}
+            setActivity={handleActivityChange}
             onReset={handleReset}
           />
         </aside>
@@ -75,18 +104,43 @@ const Index = () => {
           />
         )}
 
-        {/* 3D Scene */}
-        <main className="flex-1 relative">
-          <SpineScene
-            axialLoad={axialLoad}
-            flexionAngle={flexionAngle}
-            discHealth={discHealth}
-          />
+        {/* Dual 3D Panels */}
+        <main className="flex-1 flex flex-col md:flex-row relative">
+          {/* Left: IVD Simulation */}
+          <div className="flex-1 relative border-b md:border-b-0 md:border-r border-glow min-h-0">
+            <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-card/80 backdrop-blur-sm rounded-md px-2.5 py-1.5 border border-glow">
+              <Bone className="h-3 w-3 text-primary" />
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">IVD Model</span>
+            </div>
+            <SpineScene
+              axialLoad={axialLoad}
+              flexionAngle={flexionAngle}
+              discHealth={discHealth}
+            />
+            <div className="absolute bottom-3 left-3 text-[10px] font-mono text-muted-foreground/60 space-y-0.5">
+              <p>Drag to rotate • Scroll to zoom</p>
+              <p>Load: {axialLoad}N • Angle: {flexionAngle}°</p>
+            </div>
+          </div>
 
-          {/* Scene overlay info */}
-          <div className="absolute bottom-4 left-4 text-[10px] font-mono text-muted-foreground/60 space-y-0.5">
-            <p>Drag to rotate • Scroll to zoom</p>
-            <p>Load: {axialLoad}N • Angle: {flexionAngle}°</p>
+          {/* Right: Humanoid Simulator */}
+          <div className="flex-1 relative min-h-0">
+            <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-card/80 backdrop-blur-sm rounded-md px-2.5 py-1.5 border border-glow">
+              <User className="h-3 w-3 text-primary" />
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                Humanoid — {activity === "standing" ? "Static" : activity === "walking" ? "Walking" : "Weightlifting"}
+              </span>
+            </div>
+            <HumanoidScene
+              axialLoad={axialLoad}
+              flexionAngle={flexionAngle}
+              herniationRisk={herniationRisk}
+              activity={activity}
+            />
+            <div className="absolute bottom-3 left-3 text-[10px] font-mono text-muted-foreground/60 space-y-0.5">
+              <p>Drag to rotate • Scroll to zoom</p>
+              <p>Risk: {herniationRisk}% • Mode: {activity}</p>
+            </div>
           </div>
         </main>
       </div>

@@ -7,12 +7,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Activity, Gauge, TrendingUp, AlertTriangle, FileDown, Zap } from "lucide-react";
+import { RotateCcw, Activity, Gauge, TrendingUp, AlertTriangle, FileDown, Zap, PersonStanding, Footprints, Dumbbell } from "lucide-react";
 import StressStrainChart from "./StressStrainChart";
 import HerniationGauge from "./HerniationGauge";
 import AnimationPresets from "./AnimationPresets";
 import { useRef, useState } from "react";
 import { exportSimulationPdf } from "@/lib/exportPdf";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
+type ActivityType = "standing" | "walking" | "weightlifting";
 
 interface ControlPanelProps {
   axialLoad: number;
@@ -21,6 +24,8 @@ interface ControlPanelProps {
   setFlexionAngle: (v: number) => void;
   discHealth: "healthy" | "mild" | "severe";
   setDiscHealth: (v: "healthy" | "mild" | "severe") => void;
+  activity: ActivityType;
+  setActivity: (v: ActivityType) => void;
   onReset: () => void;
 }
 
@@ -74,6 +79,8 @@ export default function ControlPanel({
   setFlexionAngle,
   discHealth,
   setDiscHealth,
+  activity,
+  setActivity,
   onReset,
 }: ControlPanelProps) {
   const chartRef = useRef<HTMLDivElement>(null);
@@ -187,6 +194,42 @@ export default function ControlPanel({
                 </SelectItem>
               </SelectContent>
             </Select>
+        </div>
+
+        {/* Activity Toggle */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <PersonStanding className="h-3.5 w-3.5 text-primary" />
+            <label className="text-sm text-foreground font-medium">Activity Mode</label>
+          </div>
+          <ToggleGroup
+            type="single"
+            value={activity}
+            onValueChange={(v) => { if (v) setActivity(v as ActivityType); }}
+            className="justify-start gap-1.5"
+          >
+            <ToggleGroupItem
+              value="standing"
+              className="font-mono text-xs data-[state=on]:bg-primary/20 data-[state=on]:text-primary border border-border"
+            >
+              <PersonStanding className="h-3 w-3 mr-1" />
+              Static
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="walking"
+              className="font-mono text-xs data-[state=on]:bg-primary/20 data-[state=on]:text-primary border border-border"
+            >
+              <Footprints className="h-3 w-3 mr-1" />
+              Walk
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="weightlifting"
+              className="font-mono text-xs data-[state=on]:bg-primary/20 data-[state=on]:text-primary border border-border"
+            >
+              <Dumbbell className="h-3 w-3 mr-1" />
+              Lift
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
         {/* Animation Presets */}

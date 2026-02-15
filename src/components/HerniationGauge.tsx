@@ -16,6 +16,7 @@ export default function HerniationGauge({ risk }: HerniationGaugeProps) {
   const strokeWidth = 10;
   const cx = 90;
   const cy = 90;
+  // Arc from 180° to 0° (bottom half = gauge)
   const startAngle = 180;
   const endAngle = 0;
   const sweepRange = 180;

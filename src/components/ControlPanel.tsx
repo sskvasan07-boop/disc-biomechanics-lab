@@ -22,6 +22,7 @@ interface ControlPanelProps {
   discHealth: "healthy" | "mild" | "severe";
   setDiscHealth: (v: "healthy" | "mild" | "severe") => void;
   onReset: () => void;
+  peakVonMises: number;
 }
 
 function MetricCard({
@@ -75,6 +76,7 @@ export default function ControlPanel({
   discHealth,
   setDiscHealth,
   onReset,
+  peakVonMises,
 }: ControlPanelProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
@@ -216,6 +218,13 @@ export default function ControlPanel({
             unit="%"
             icon={AlertTriangle}
             variant={riskVariant}
+          />
+          <MetricCard
+            label="Peak σ_VM"
+            value={peakVonMises.toFixed(3)}
+            unit="MPa"
+            icon={Zap}
+            variant={peakVonMises > 0.8 ? "high" : peakVonMises > 0.4 ? "medium" : "low"}
           />
         </div>
       </div>

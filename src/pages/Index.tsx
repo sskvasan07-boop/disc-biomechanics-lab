@@ -8,7 +8,6 @@ const Index = () => {
   const [flexionAngle, setFlexionAngle] = useState(0);
   const [discHealth, setDiscHealth] = useState<"healthy" | "mild" | "severe">("healthy");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [peakVonMises, setPeakVonMises] = useState(0);
 
   const handleReset = () => {
     setAxialLoad(500);
@@ -65,7 +64,6 @@ const Index = () => {
             discHealth={discHealth}
             setDiscHealth={setDiscHealth}
             onReset={handleReset}
-            peakVonMises={peakVonMises}
           />
         </aside>
 
@@ -83,7 +81,6 @@ const Index = () => {
             axialLoad={axialLoad}
             flexionAngle={flexionAngle}
             discHealth={discHealth}
-            onPeakStressChange={setPeakVonMises}
           />
 
           {/* Scene overlay info */}

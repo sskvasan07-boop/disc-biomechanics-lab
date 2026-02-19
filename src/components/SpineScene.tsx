@@ -1,27 +1,28 @@
-import { useRef, useMemo, useEffect, useCallback } from "react";
+import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Environment } from "@react-three/drei";
 import * as THREE from "three";
-import { createDiscGeometry, updateFEAMesh, type FEAParams } from "@/lib/feaMesh";
 
 interface SpineSceneProps {
   axialLoad: number;
   flexionAngle: number;
   discHealth: "healthy" | "mild" | "severe";
-  onPeakStressChange?: (stress: number) => void;
 }
 
 function Vertebra({ position, rotation }: { position: [number, number, number]; rotation?: [number, number, number] }) {
   return (
     <group position={position} rotation={rotation}>
+      {/* Main vertebral body */}
       <mesh>
         <cylinderGeometry args={[1.2, 1.3, 0.8, 32]} />
         <meshStandardMaterial color="#d4d4cc" roughness={0.6} metalness={0.1} />
       </mesh>
+      {/* Spinous process */}
       <mesh position={[0, 0.1, -0.9]}>
         <boxGeometry args={[0.15, 0.5, 0.8]} />
         <meshStandardMaterial color="#c8c8c0" roughness={0.7} />
       </mesh>
+      {/* Transverse processes */}
       <mesh position={[1.1, 0, -0.3]} rotation={[0, 0.3, 0]}>
         <boxGeometry args={[0.6, 0.2, 0.15]} />
         <meshStandardMaterial color="#c8c8c0" roughness={0.7} />
@@ -30,6 +31,7 @@ function Vertebra({ position, rotation }: { position: [number, number, number]; 
         <boxGeometry args={[0.6, 0.2, 0.15]} />
         <meshStandardMaterial color="#c8c8c0" roughness={0.7} />
       </mesh>
+      {/* Endplate ring */}
       <mesh position={[0, -0.4, 0]}>
         <torusGeometry args={[1.0, 0.08, 8, 32]} />
         <meshStandardMaterial color="#b0b0a8" roughness={0.5} />
@@ -38,75 +40,80 @@ function Vertebra({ position, rotation }: { position: [number, number, number]; 
   );
 }
 
-function FEADisc({
+function Disc({
   axialLoad,
   flexionAngle,
   discHealth,
-  onPeakStress,
 }: {
   axialLoad: number;
   flexionAngle: number;
   discHealth: "healthy" | "mild" | "severe";
-  onPeakStress: (stress: number) => void;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const wireRef = useRef<THREE.LineSegments>(null);
-  const originalPositions = useRef<Float32Array | null>(null);
+  const nucleusRef = useRef<THREE.Mesh>(null);
 
-  const geometry = useMemo(() => createDiscGeometry(), []);
+  const compression = axialLoad / 2000;
+  const bulge = 1 + compression * 0.3;
+  const heightScale = 1 - compression * 0.25;
 
-  // Store original positions on first render
-  useEffect(() => {
-    const posArr = geometry.attributes.position.array as Float32Array;
-    originalPositions.current = new Float32Array(posArr);
-  }, [geometry]);
+  const discColor = useMemo(() => {
+    switch (discHealth) {
+      case "healthy": return "#00c896";
+      case "mild": return "#d4a020";
+      case "severe": return "#c84040";
+    }
+  }, [discHealth]);
 
-  // Wireframe geometry derived from main geometry
-  const wireGeometry = useMemo(() => {
-    return new THREE.WireframeGeometry(geometry);
-  }, [geometry]);
+  const nucleusColor = useMemo(() => {
+    switch (discHealth) {
+      case "healthy": return "#40e0d0";
+      case "mild": return "#e0c050";
+      case "severe": return "#e06060";
+    }
+  }, [discHealth]);
 
   useFrame(() => {
-    if (!originalPositions.current) return;
-
-    const params: FEAParams = { axialLoad, flexionAngle, discHealth };
-    const result = updateFEAMesh(geometry, originalPositions.current, params);
-    onPeakStress(result.peakVonMises);
-
-    // Update wireframe to match deformed geometry
-    if (wireRef.current) {
-      wireRef.current.geometry.dispose();
-      wireRef.current.geometry = new THREE.WireframeGeometry(geometry);
+    if (meshRef.current) {
+      meshRef.current.scale.set(bulge, heightScale, bulge);
+      meshRef.current.rotation.x = THREE.MathUtils.degToRad(flexionAngle * 0.5);
+    }
+    if (nucleusRef.current) {
+      nucleusRef.current.scale.set(bulge * 1.05, heightScale * 0.9, bulge * 1.05);
+      nucleusRef.current.rotation.x = THREE.MathUtils.degToRad(flexionAngle * 0.5);
     }
   });
 
   return (
     <group position={[0, 0, 0]}>
-      {/* Solid FEA mesh with vertex colors */}
-      <mesh ref={meshRef} geometry={geometry}>
+      {/* Annulus fibrosus */}
+      <mesh ref={meshRef}>
+        <cylinderGeometry args={[1.15, 1.15, 0.5, 32]} />
         <meshStandardMaterial
-          vertexColors
+          color={discColor}
           roughness={0.4}
           metalness={0.1}
           transparent
           opacity={0.85}
-          side={THREE.DoubleSide}
         />
       </mesh>
-      {/* Wireframe overlay */}
-      <lineSegments ref={wireRef} geometry={wireGeometry}>
-        <lineBasicMaterial
-          color="hsl(190, 100%, 50%)"
+      {/* Nucleus pulposus */}
+      <mesh ref={nucleusRef}>
+        <sphereGeometry args={[0.6, 32, 32]} />
+        <meshStandardMaterial
+          color={nucleusColor}
+          roughness={0.3}
+          metalness={0.2}
           transparent
-          opacity={0.12}
-          linewidth={1}
+          opacity={0.6}
+          emissive={nucleusColor}
+          emissiveIntensity={0.15}
         />
-      </lineSegments>
+      </mesh>
     </group>
   );
 }
 
-function SpineModel({ axialLoad, flexionAngle, discHealth, onPeakStress }: SpineSceneProps & { onPeakStress: (s: number) => void }) {
+function SpineModel({ axialLoad, flexionAngle, discHealth }: SpineSceneProps) {
   const groupRef = useRef<THREE.Group>(null);
   const angleRad = THREE.MathUtils.degToRad(flexionAngle);
   const compression = axialLoad / 2000;
@@ -119,16 +126,14 @@ function SpineModel({ axialLoad, flexionAngle, discHealth, onPeakStress }: Spine
 
   return (
     <group ref={groupRef}>
+      {/* Upper vertebra */}
       <Vertebra
         position={[0, 0.65 - compression * 0.12, Math.sin(angleRad) * 0.15]}
         rotation={[angleRad * 0.5, 0, 0]}
       />
-      <FEADisc
-        axialLoad={axialLoad}
-        flexionAngle={flexionAngle}
-        discHealth={discHealth}
-        onPeakStress={onPeakStress}
-      />
+      {/* Disc */}
+      <Disc axialLoad={axialLoad} flexionAngle={flexionAngle} discHealth={discHealth} />
+      {/* Lower vertebra */}
       <Vertebra
         position={[0, -0.65 + compression * 0.12, -Math.sin(angleRad) * 0.15]}
         rotation={[-angleRad * 0.5, 0, 0]}
@@ -137,19 +142,7 @@ function SpineModel({ axialLoad, flexionAngle, discHealth, onPeakStress }: Spine
   );
 }
 
-export default function SpineScene({ axialLoad, flexionAngle, discHealth, onPeakStressChange }: SpineSceneProps) {
-  const stressRef = useRef(0);
-  const frameCount = useRef(0);
-
-  const handlePeakStress = useCallback((stress: number) => {
-    // Throttle callback to avoid excessive re-renders
-    stressRef.current = stress;
-    frameCount.current++;
-    if (frameCount.current % 15 === 0 && onPeakStressChange) {
-      onPeakStressChange(stress);
-    }
-  }, [onPeakStressChange]);
-
+export default function SpineScene({ axialLoad, flexionAngle, discHealth }: SpineSceneProps) {
   return (
     <Canvas
       camera={{ position: [3, 2, 4], fov: 40 }}
@@ -160,12 +153,7 @@ export default function SpineScene({ axialLoad, flexionAngle, discHealth, onPeak
       <directionalLight position={[5, 5, 5]} intensity={0.8} color="#ffffff" />
       <directionalLight position={[-3, 2, -3]} intensity={0.3} color="#00d4ff" />
       <pointLight position={[0, 0, 3]} intensity={0.5} color="#00d4ff" distance={10} />
-      <SpineModel
-        axialLoad={axialLoad}
-        flexionAngle={flexionAngle}
-        discHealth={discHealth}
-        onPeakStress={handlePeakStress}
-      />
+      <SpineModel axialLoad={axialLoad} flexionAngle={flexionAngle} discHealth={discHealth} />
       <OrbitControls
         enablePan={false}
         minDistance={3}

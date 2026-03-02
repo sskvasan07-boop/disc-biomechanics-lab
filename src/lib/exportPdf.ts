@@ -13,6 +13,18 @@ interface ExportOptions {
   viewportCanvas: HTMLCanvasElement | null;
 }
 
+function addFooter(pdf: jsPDF, pageWidth: number, pageHeight: number) {
+  pdf.setDrawColor(200, 200, 200);
+  pdf.line(15, pageHeight - 18, pageWidth - 15, pageHeight - 18);
+  pdf.setTextColor(160, 160, 160);
+  pdf.setFontSize(8);
+  pdf.text("IVD-Sim — Spinal Stress Analysis Report", 15, pageHeight - 13);
+  pdf.text("For research and educational purposes only", pageWidth / 2, pageHeight - 13, { align: "center" });
+  pdf.setFontSize(7);
+  pdf.setTextColor(130, 130, 130);
+  pdf.text("Prepared by: S. S. Keerthi Vasan, K. Priyadharshini, Siddiraju Mamatha", pageWidth / 2, pageHeight - 8, { align: "center" });
+}
+
 function getMetrics(data: SimulationData) {
   const crossSectionalArea = 1500;
   const stress = data.axialLoad / crossSectionalArea;
@@ -80,6 +92,33 @@ export async function exportSimulationPdf(
 
   y += 8;
 
+  // 3D Viewport Capture — placed between Input Parameters and Computed Metrics
+  if (viewportCanvas) {
+    try {
+      const imgData = viewportCanvas.toDataURL("image/png");
+      const imgWidth = pageWidth - 30;
+      const imgHeight = (viewportCanvas.height / viewportCanvas.width) * imgWidth;
+      const cappedHeight = Math.min(imgHeight, 80);
+
+      pdf.setTextColor(0, 210, 255);
+      pdf.setFontSize(13);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("3D Viewport — Disc Deformation", 15, y);
+      y += 6;
+      pdf.addImage(imgData, "PNG", 15, y, imgWidth, cappedHeight);
+      y += cappedHeight + 10;
+    } catch (e) {
+      console.warn("Could not capture 3D viewport for PDF", e);
+    }
+  }
+
+  // Check if we need a new page for metrics
+  if (y + 60 > pageHeight) {
+    pdf.addPage();
+    y = 20;
+    addFooter(pdf, pageWidth, pageHeight);
+  }
+
   // Computed Metrics
   pdf.setTextColor(0, 210, 255);
   pdf.setFontSize(13);
@@ -122,26 +161,6 @@ export async function exportSimulationPdf(
   pdf.text(`${riskLevel} Risk (${metrics.herniationRisk}%)`, 23, y + 1.5);
   y += 16;
 
-  // 3D Viewport Capture
-  if (viewportCanvas) {
-    try {
-      const imgData = viewportCanvas.toDataURL("image/png");
-      const imgWidth = pageWidth - 30;
-      const imgHeight = (viewportCanvas.height / viewportCanvas.width) * imgWidth;
-      const cappedHeight = Math.min(imgHeight, 70);
-
-      pdf.setTextColor(0, 210, 255);
-      pdf.setFontSize(13);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("3D Viewport — Disc Deformation", 15, y);
-      y += 6;
-      pdf.addImage(imgData, "PNG", 15, y, imgWidth, cappedHeight);
-      y += cappedHeight + 8;
-    } catch (e) {
-      console.warn("Could not capture 3D viewport for PDF", e);
-    }
-  }
-
   // Chart capture
   if (chartElement) {
     try {
@@ -171,16 +190,12 @@ export async function exportSimulationPdf(
     }
   }
 
-  // Footer
-  pdf.setDrawColor(200, 200, 200);
-  pdf.line(15, pageHeight - 18, pageWidth - 15, pageHeight - 18);
-  pdf.setTextColor(160, 160, 160);
-  pdf.setFontSize(8);
-  pdf.text("IVD-Sim — Spinal Stress Analysis Report", 15, pageHeight - 13);
-  pdf.text("For research and educational purposes only", pageWidth / 2, pageHeight - 13, { align: "center" });
-  pdf.setFontSize(7);
-  pdf.setTextColor(130, 130, 130);
-  pdf.text("Prepared by: S. S. Keerthi Vasan, K. Priyadharshini, Siddiraju Mamatha", pageWidth / 2, pageHeight - 8, { align: "center" });
+  // Add footer to all pages
+  const totalPages = pdf.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    pdf.setPage(i);
+    addFooter(pdf, pageWidth, pageHeight);
+  }
 
   pdf.save(`ivd-sim-report-${Date.now()}.pdf`);
 }

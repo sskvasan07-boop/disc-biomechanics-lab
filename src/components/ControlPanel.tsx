@@ -13,7 +13,6 @@ import HerniationGauge from "./HerniationGauge";
 import AnimationPresets from "./AnimationPresets";
 import { useRef, useState } from "react";
 import { exportSimulationPdf } from "@/lib/exportPdf";
-import { toast } from "@/hooks/use-toast";
 
 interface ControlPanelProps {
   axialLoad: number;
@@ -23,7 +22,6 @@ interface ControlPanelProps {
   discHealth: "healthy" | "mild" | "severe";
   setDiscHealth: (v: "healthy" | "mild" | "severe") => void;
   onReset: () => void;
-  viewportCanvas?: HTMLCanvasElement | null;
 }
 
 function MetricCard({
@@ -77,23 +75,17 @@ export default function ControlPanel({
   discHealth,
   setDiscHealth,
   onReset,
-  viewportCanvas,
 }: ControlPanelProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
 
   const handleExport = async () => {
     setExporting(true);
-    toast({ title: "Generating PDF...", description: "Capturing simulation data and 3D viewport." });
     try {
-      await exportSimulationPdf({
-        data: { axialLoad, flexionAngle, discHealth },
-        chartElement: chartRef.current,
-        viewportCanvas: viewportCanvas ?? null,
-      });
-      toast({ title: "PDF Ready", description: "Your report has been downloaded." });
-    } catch {
-      toast({ title: "Export Failed", description: "Something went wrong generating the PDF.", variant: "destructive" });
+      await exportSimulationPdf(
+        { axialLoad, flexionAngle, discHealth },
+        chartRef.current
+      );
     } finally {
       setExporting(false);
     }
@@ -119,16 +111,6 @@ export default function ControlPanel({
 
   return (
     <div className="flex flex-col gap-5 h-full">
-      {/* Export Button — top of sidebar */}
-      <Button
-        onClick={handleExport}
-        disabled={exporting}
-        className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-mono"
-      >
-        <FileDown className="h-4 w-4 mr-2" />
-        {exporting ? "Generating…" : "Export Report (PDF)"}
-      </Button>
-
       {/* Controls */}
       <div>
         <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-mono mb-4 flex items-center gap-2">
@@ -261,14 +243,23 @@ export default function ControlPanel({
       </div>
 
       {/* Actions */}
-      <div>
+      <div className="flex gap-2">
         <Button
           onClick={onReset}
           variant="outline"
-          className="w-full border-primary/30 text-primary hover:bg-primary/10 font-mono"
+          className="flex-1 border-primary/30 text-primary hover:bg-primary/10 font-mono"
         >
           <RotateCcw className="h-4 w-4 mr-2" />
-          Reset Simulation
+          Reset
+        </Button>
+        <Button
+          onClick={handleExport}
+          disabled={exporting}
+          variant="outline"
+          className="flex-1 border-primary/30 text-primary hover:bg-primary/10 font-mono"
+        >
+          <FileDown className="h-4 w-4 mr-2" />
+          {exporting ? "Exporting…" : "Export PDF"}
         </Button>
       </div>
     </div>

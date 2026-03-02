@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Bone, Menu } from "lucide-react";
 import SpineScene from "@/components/SpineScene";
 import ControlPanel from "@/components/ControlPanel";
@@ -8,14 +8,6 @@ const Index = () => {
   const [flexionAngle, setFlexionAngle] = useState(0);
   const [discHealth, setDiscHealth] = useState<"healthy" | "mild" | "severe">("healthy");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [viewportCanvas, setViewportCanvas] = useState<HTMLCanvasElement | null>(null);
-
-  const mainRef = useCallback((node: HTMLElement | null) => {
-    if (node) {
-      const canvas = node.querySelector("canvas");
-      if (canvas) setViewportCanvas(canvas);
-    }
-  }, []);
 
   const handleReset = () => {
     setAxialLoad(500);
@@ -72,7 +64,6 @@ const Index = () => {
             discHealth={discHealth}
             setDiscHealth={setDiscHealth}
             onReset={handleReset}
-            viewportCanvas={viewportCanvas}
           />
         </aside>
 
@@ -85,7 +76,7 @@ const Index = () => {
         )}
 
         {/* 3D Scene */}
-        <main className="flex-1 relative" ref={mainRef}>
+        <main className="flex-1 relative">
           <SpineScene
             axialLoad={axialLoad}
             flexionAngle={flexionAngle}
@@ -99,13 +90,6 @@ const Index = () => {
           </div>
         </main>
       </div>
-
-      {/* Footer */}
-      <footer className="shrink-0 border-t border-glow bg-card/80 backdrop-blur-sm py-4 text-center">
-        <p className="text-xs font-mono text-muted-foreground">
-          Made by S. S. Keerthi vasan, K. Priyadharshini, Siddiraju Mamatha
-        </p>
-      </footer>
     </div>
   );
 };

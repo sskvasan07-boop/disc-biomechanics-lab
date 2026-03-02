@@ -90,6 +90,13 @@ const Index = () => {
           </div>
         </main>
       </div>
+
+      {/* Footer */}
+      <footer className="shrink-0 border-t border-glow bg-card/80 backdrop-blur-sm py-4 text-center">
+        <p className="text-xs font-mono text-muted-foreground">
+          Made by S. S. Keerthi vasan, K. Priyadharshini, Siddiraju Mamatha
+        </p>
+      </footer>
     </div>
   );
 };

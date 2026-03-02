@@ -22,6 +22,7 @@ interface ControlPanelProps {
   discHealth: "healthy" | "mild" | "severe";
   setDiscHealth: (v: "healthy" | "mild" | "severe") => void;
   onReset: () => void;
+  viewportCanvas?: HTMLCanvasElement | null;
 }
 
 function MetricCard({
@@ -75,6 +76,7 @@ export default function ControlPanel({
   discHealth,
   setDiscHealth,
   onReset,
+  viewportCanvas,
 }: ControlPanelProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
@@ -82,10 +84,11 @@ export default function ControlPanel({
   const handleExport = async () => {
     setExporting(true);
     try {
-      await exportSimulationPdf(
-        { axialLoad, flexionAngle, discHealth },
-        chartRef.current
-      );
+      await exportSimulationPdf({
+        data: { axialLoad, flexionAngle, discHealth },
+        chartElement: chartRef.current,
+        viewportCanvas: viewportCanvas ?? null,
+      });
     } finally {
       setExporting(false);
     }
